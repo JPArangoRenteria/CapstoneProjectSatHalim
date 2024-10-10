@@ -1,5 +1,4 @@
-function [sc,scenario] = walker_constellation_v2(startdate, duration, steptime, ...
-                                   numSatellites, numPlanes, relativeSpacing, altitude, inclination, ...
+function sc = walker_constellation_v2(scenario,numSatellites, numPlanes, relativeSpacing, altitude, inclination, ...
                                    walker_type)
     % Earth's radius in kilometers
     EarthRadius = 6378.14; % in kilometers
@@ -11,7 +10,6 @@ function [sc,scenario] = walker_constellation_v2(startdate, duration, steptime, 
     %stopTime = datetime(stop_y, stop_mon, stop_d, stop_h, stop_min, stop_s);
 
     % Create satellite scenario
-    scenario = create_scenario(startdate, duration, steptime);
     %scenario = satelliteScenario(startTime, stopTime, stepping_u);
 
     % Generate Walker constellation based on inclination
