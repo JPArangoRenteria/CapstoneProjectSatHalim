@@ -1,5 +1,8 @@
 % FSPL Function
-function [fsplResults,timeSamples] = calculateFSPL(gsORsat,sat,startTime,endTime,sampleTime,lambda)
+function [fsplResults,timeSamples] = calculateFSPL(gsORsat,sat,startTime,endTime,sampleTime,txFreq)
+
+    % Calculate the wavelength of the transmission signal
+    txLambda = 3e8 / txFreq;
 
     % Pre-allocate results for FSPL and time
     duration = seconds(endTime - startTime); % Total simulation time (in sec)
@@ -36,7 +39,7 @@ function [fsplResults,timeSamples] = calculateFSPL(gsORsat,sat,startTime,endTime
             d = slantRangeCircularOrbit(el,satPos(3),gsPos(3));
     
             % Compute FSPL using the distance and frequency
-            pathLoss = fspl(d,lambda); %FSPL in dB
+            pathLoss = fspl(d,txLambda); %FSPL in dB
             fsplResults(i) = pathLoss ;
             timeSamples(i) = currentTime; % Save current time
         end
@@ -72,7 +75,7 @@ function [fsplResults,timeSamples] = calculateFSPL(gsORsat,sat,startTime,endTime
             % d = slantRangeCircularOrbit(el,satPos(3),gsPos(3));
     
             % Compute FSPL using the distance and frequency
-            pathLoss = fspl(d1,lambda); %FSPL in dB
+            pathLoss = fspl(d1,txLambda); %FSPL in dB
             fsplResults(i) = pathLoss ;
             timeSamples(i) = currentTime; % Save current time
         
