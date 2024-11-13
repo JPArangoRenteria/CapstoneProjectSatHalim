@@ -1,3 +1,14 @@
+% Create CNR Config object to for satelliteCNR function
+cfg = satelliteCNRConfig;
+cfg.TransmitterPower = 15;                          % in dBW
+cfg.TransmitterSystemLoss = 9;                      % in dB
+cfg.TransmitterAntennaGain = 38;                    %in dBi
+cfg.Frequency = 2.4;                                % in GHz
+cfg.MiscellaneousLoss = 6;                          % in dB
+cfg.GainToNoiseTemperatureRatio = cfg.TransmitterPower * cfg.TransmitterAntennaGain / 290;    % in dB/K
+cfg.ReceiverSystemLoss = 2;                         % in dB
+cfg.BitRate = 10;                                   % in Mbps
+
 % SNR and FSPL Function
 function [snrResults,fsplResults,timeSamples] = calculateSNR_FSPL(gsORsat,sat,cfg,startTime,duration,sampleTime)
 
