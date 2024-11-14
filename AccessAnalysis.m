@@ -1,16 +1,16 @@
 function [accessout, aircraftout, constellationout, selectiveout] = AccessAnalysis(scenario)
     % Aircraft/constellation making
     % aircraft = create_sim_airport(starting, 3); % For airport stuff
+    scenario.scenario.AutoSimulate = true;
     aircraftout = create_mission(scenario, scenario.scenario.StartTime, 3, 53.31, -113.58, 45.32, -75.67); % For testing
-    constellationout = walker_constellation_v2(scenario.scenario, 36, 6, 1, 750, 53, 'star');
-    
+    constellationout = walker_constellation_v2(scenario.scenario, 72, 6, 1, 750, 70, 'star');
+
     % Access stuff
     accessfirst = Access_AnalysisTable(constellationout, aircraftout);
     accessout = accessFSPL(scenario, constellationout, aircraftout, accessfirst, 0.125);
     fix_table(accessout);
 
-    accessimproved = timedaccess(scenario, accessout, aircraftout);
-    selectiveout = rmmissing(accessimproved);
+    selectiveout = streamlinedaccess(scenario, accessout, aircraftout);
 end
 
 function flight_path = flight_pathing(flightduration, startlat, startlong, endlat, endlong)
@@ -72,7 +72,11 @@ function aircraftout = create_mission(satscenario, startdate, flightduration, st
     aircraftout.obj.MarkerColor = "green";
     hide(aircraftout.obj.Orbit);
     show(aircraftout.obj.GroundTrack);
-    aircraftout.Connected = false;
+
+    aircraftout.Connection.Connected = false;
+    aircraftout.Connection.sat = '';
+    aircraftout.Connection.index = 0;
+    aircraftout.Connection.number = 0;
 end
 
 
@@ -118,6 +122,7 @@ end
 
 function accessAnalysisTable = Access_AnalysisTable(constellationobject, aircraftobject)
     accessAnalysisTable.obj = access(constellationobject, aircraftobject.obj);
+    accessAnalysisTable.obj.LineColor = "#00FF00";
     accessAnalysisTable.Intervals = accessIntervals(accessAnalysisTable.obj);
     accessAnalysisTable.Intervals = sortrows(accessAnalysisTable.Intervals,"StartTime");
 end
@@ -149,7 +154,7 @@ function accessout = accessFSPL(scenario, constellationobj, aircraftobj, accesso
     accessout.Intervals.("FSPL") = FSPLColumn;
 
     % Get each satellite times/connections
-    for index = 1:size(accessobj.Intervals.Source)
+    for index = 1:size(accessobj.Intervals.Source, 1)
         strippedsat = split(accessobj.Intervals.Source(index, 1), '_'); % Get satellite number
         satnum = str2double(strippedsat(2));
         
@@ -158,150 +163,113 @@ function accessout = accessFSPL(scenario, constellationobj, aircraftobj, accesso
         meanFSPL = mean(indexFSPL, "all"); % Take average
         accessout.Intervals.FSPL(index, 1) = meanFSPL; % Add average to access table
     end
-    disp(accessout.Intervals)
 end
 
-function selectiveaccess = timedaccess(scenarioobj, accessobj, aircraftobj)
-    
+function streamlined = streamlinedaccess(scenario,accessobj,aircraft)
+    % Vars needed
+    connectedaccessrow = 1;
+    connected = false;
+    tablerow = 1;
+
     % Getting current and end time
-    scenariostart = scenarioobj.scenario.StartTime;
+    scenariostart = scenario.scenario.StartTime;
     scenariostart.Format = 'd-MMMM-yyyy HH:mm:ss';
     scenariostart.TimeZone = '';
-    scenarioend = scenarioobj.scenario.StopTime;
+    scenarioend = scenario.scenario.StopTime;
     scenarioend.Format = 'd-MMMM-yyyy HH:mm:ss';
     scenarioend.TimeZone = '';
 
-    timevector = [scenariostart:minutes(1):scenarioend];
+    timevector = scenariostart:minutes(1):scenarioend;
     vectorsize = size(timevector, 2);
-    timevector(1) = timevector(1)+duration(0, 0, 0, 1);
 
-    % Creating table
-    selectiveaccess = table('Size',[vectorsize 4], 'VariableTypes', {'string', 'datetime', 'datetime', 'double'}, 'VariableNames',{'Satellite', 'Connection Start', 'Connection End', 'FSPL'});
-    aircraftobj.Connection.Connected = false;
-    aircraftobj.Connection.sat = '';
-    aircraftobj.Connection.index = 0;
-    aircraftobj.Connection.number = 0;
-    aircraftobj.Connection.vectornum = 0;
+    streamlined = table('Size',[vectorsize 4], 'VariableTypes', {'string', 'datetime', 'datetime', 'double'}, 'VariableNames',{'Satellite', 'Connection Start', 'Connection End', 'FSPL'});
 
-    for timeindex = 1:vectorsize
-        if timeindex == 1 % If start of sim
-            for row = 1:size(accessobj.Intervals.StartTime, 1)
-                comparetime = accessobj.Intervals.StartTime(row);
-                comparetime.Format = 'd-MMMM-yyyy HH:mm:ss';
-                comparetime.TimeZone = '';
+    % Start of Sim
+    starttime = accessobj.Intervals.StartTime(connectedaccessrow);
+    starttime.TimeZone = '';
+    starttime.Format = 'd-MMMM-yyyy HH:mm:ss';
+    streamlined(tablerow, [1, 2, 4]) = {accessobj.Intervals.Source(connectedaccessrow), starttime, accessobj.Intervals.FSPL(connectedaccessrow)};
+    connected = true;
 
-                if comparetime == scenariostart && aircraftobj.Connection.Connected == false % If connected at start and table not added
+    for vectorindex = 1:vectorsize % For each minute
+        currenttime = timevector(vectorindex);
+        currenttime.Format = 'd-MMMM-yyyy HH:mm:ss';
+        currenttime.TimeZone = '';
 
-                    % Make connection
-                    aircraftobj.Connection.Connected = true;
-                    aircraftobj.Connection.sat = accessobj.Intervals.Source(row);
-                    aircraftobj.Connection.index = row;
-                    aircraftobj.Connection.number = aircraftobj.Connection.number+1;
-                    aircraftobj.Connection.vectornum = aircraftobj.Connection.vectornum+1;
+        connectedsatend = accessobj.Intervals.EndTime(connectedaccessrow);
+        connectedsatend.Format = 'd-MMMM-yyyy HH:mm:ss';
+        connectedsatend.TimeZone = '';
 
-                    % Table stuff
-                    connecttime = timevector(row);
-                    connecttime.Format = 'yyyy-MM-dd HH:mm:ss.SSS';
-                    connecttime.TimeZone = '';
-                    selectiveaccess(1, [1 2 4]) = {accessobj.Intervals.Source(row), connecttime, accessobj.Intervals.FSPL(row)};
+        if currenttime == connectedsatend % If already connected sat ends
+            connected = false;
+            streamlined(tablerow, 3) = {currenttime};
+        end
 
-                elseif comparetime == scenariostart && aircraftobj.Connection.Connected == true % If multiple connections at start
-                    if accessobj.Intervals.FSPL(row) < accessobj.Intervals.FSPL(aircraftobj.Connection.index) % And if connection of new one is better than old, replace
-
-                    % Connection
-                    aircraftobj.Connection.Connected = true;
-                    aircraftobj.Connection.sat = accessobj.Intervals.Source(row);
-                    aircraftobj.Connection.index = row;
-                    aircraftobj.Connection.number = aircraftobj.Connection.number+1;
-                    aircraftobj.Connection.vectornum = aircraftobj.Connection.vectornum+1;
-
-                    % Table stuff
-                    connecttime = datetime(timevector(row));
-                    connecttime.Format = 'yyyy-MM-dd HH:mm:ss.SSS';
-                    connecttime.TimeZone = '';
-                    selectiveaccess(aircraftobj.Connection.vectornum, [1 2 4]) = {accessobj.Intervals.Source(row), connecttime, accessobj.Intervals.FSPL(row)};
-                    end
-                end % Otherwise keep connected
-                break
-            end
-        end % Exit start of sim section
-
-        if aircraftobj.Connection.Connected == true % If connected
-            currenttime = timevector(timeindex);
-            connectionendtime = accessobj.Intervals.EndTime(aircraftobj.Connection.index);
-            connectionendtime.Format = 'd-MMMM-yyyy HH:mm:ss';
-            connectionendtime.TimeZone = '';
-            
-            for row = 1:size(accessobj.Intervals.StartTime, 1)
-                satstart = accessobj.Intervals.StartTime(row);
+        if connected % If connected
+            for rownumber = connectedaccessrow:size(accessobj.Intervals.Source,1)
+                % Get sat connection times
+                satstart = accessobj.Intervals.StartTime(rownumber);
                 satstart.Format = 'd-MMMM-yyyy HH:mm:ss';
                 satstart.TimeZone = '';
-
-                satend = accessobj.Intervals.EndTime(row);
-                satend.Format = 'd-MMMM-yyyy HH:mm:ss';
-                satend.TimeZone = '';
-                intime = isbetween(currenttime, satstart, satend); 
-                
-                if intime == true && currenttime ~= connectionendtime % If another sat is within time range
-                    if accessobj.Intervals.FSPL(row) < accessobj.Intervals.FSPL(aircraftobj.Connection.index) % Check if lower FSPL
-
-                        % Disconnect from old one
-                        selectiveaccess(aircraftobj.Connection.vectornum, 3) = {currenttime};
-                        aircraftobj.Connection.Connected = false;
-                        aircraftobj.Connection.sat = '';
-                        aircraftobj.Connection.index = '';
-
-                        % Connection to new one
-                        aircraftobj.Connection.Connected = true;
-                        aircraftobj.Connection.sat = accessobj.Intervals.Source(row);
-                        aircraftobj.Connection.index = row;
-                        aircraftobj.Connection.number = aircraftobj.Connection.number+1;
-                        aircraftobj.Connection.vectornum = aircraftobj.Connection.vectornum+1;
-                        
-                        % Table stuff
-                        connecttime = currenttime;
-                        connecttime.Format = 'yyyy-MM-dd HH:mm:ss.SSS';
-                        connecttime.TimeZone = '';
-                        selectiveaccess(aircraftobj.Connection.vectornum, [1 2 4]) = {accessobj.Intervals.Source(row), connecttime, accessobj.Intervals.FSPL(row)};
-                    end
-
-                elseif currenttime == connectionendtime % If none, check if we disconnect from current one yet
-                    selectiveaccess(aircraftobj.Connection.vectornum, 3) = {currenttime};
-                    aircraftobj.Connection.Connected = false;
-                    aircraftobj.Connection.sat = '';
-                    aircraftobj.Connection.index = '';
-                end
-            end
-        else % If not connected
-            currenttime = timevector(timeindex);
-            for row = 1:size(accessobj.Intervals.StartTime, 1)
-                satstart = accessobj.Intervals.StartTime(row);
-                satstart.Format = 'd-MMMM-yyyy HH:mm:ss';
-                satstart.TimeZone = '';
-
-                satend = accessobj.Intervals.EndTime(row);
-                satend.Format = 'd-MMMM-yyyy HH:mm:ss';
-                satend.TimeZone = '';
-                intime = isbetween(currenttime, satstart, satend); 
-
-                if intime == true % If a sat is within time range
-                    % Connection
-                    aircraftobj.Connection.Connected = true;
-                    aircraftobj.Connection.sat = accessobj.Intervals.Source(row);
-                    aircraftobj.Connection.index = row;
-                    aircraftobj.Connection.vectornum = aircraftobj.Connection.vectornum+1;
-                    
-                    % Table stuff
-                    connecttime = currenttime;
-                    connecttime.Format = 'yyyy-MM-dd HH:mm:ss.SSS';
-                    connecttime.TimeZone = '';
-                    selectiveaccess(aircraftobj.Connection.vectornum, [1 2 4]) = {accessobj.Intervals.Source(row), connecttime, accessobj.Intervals.FSPL(row)};
-                end
-            end
-        end % End the if connected
-        
-    end % End run through
     
-    % Cleanup
-    selectiveaccess = rmmissing(selectiveaccess);
+                satend = accessobj.Intervals.EndTime(rownumber);
+                satend.Format = 'd-MMMM-yyyy HH:mm:ss';
+                satend.TimeZone = '';
+    
+                intime = isbetween(currenttime, satstart, satend);
+    
+                if intime % If theres a sat within range at the time
+                    if accessobj.Intervals.FSPL(rownumber) < accessobj.Intervals.FSPL(connectedaccessrow) % If better FSPL
+                        % Disconnect from old
+                        streamlined(tablerow, 3) = {currenttime};
+                        
+                        % Connect to new
+                        tablerow = tablerow + 1;
+                        connectedaccessrow = rownumber;
+                        streamlined(tablerow, [1, 2, 4]) = {accessobj.Intervals.Source(connectedaccessrow), currenttime, accessobj.Intervals.FSPL(connectedaccessrow)};
+                    end
+                end        
+            end
+
+            
+        % If not connected
+        elseif connected == false
+            for nonconnectedindex = connectedaccessrow+1:size(accessobj.Intervals.Source,1)
+                satstart = accessobj.Intervals.StartTime(nonconnectedindex);
+                satstart.Format = 'd-MMMM-yyyy HH:mm:ss';
+                satstart.TimeZone = '';
+        
+                satend = accessobj.Intervals.EndTime(nonconnectedindex);
+                satend.Format = 'd-MMMM-yyyy HH:mm:ss';
+                satend.TimeZone = '';
+        
+                intime = isbetween(currenttime, satstart, satend);
+                reconnected = false;
+        
+                if intime % If there's a sat in range at the time
+                    if reconnected == false % If we haven't already reconnected
+                        tablerow = tablerow + 1;
+                        connectedaccessrow = nonconnectedindex;
+                        accessobj.Intervals.Source(connectedaccessrow);
+                        streamlined(tablerow, [1, 2, 4]) = {accessobj.Intervals.Source(connectedaccessrow), currenttime, accessobj.Intervals.FSPL(connectedaccessrow)};
+                        connected = true;
+                        reconnected = true;
+                    
+                    elseif reconnected == true % If we did reconnect, multiple sats in range
+                        if accessobj.Intervals.FSPL(nonconnectedindex) < accessobj.Intervals.FSPL(connectedaccessrow) % If better FSPL
+                        % Disconnect from old
+                        streamlined(tablerow, 3) = {currenttime};
+                        
+                        % Connect to new
+                        tablerow = tablerow + 1;
+                        connectedaccessrow = nonconnectedindex;
+                        streamlined(tablerow, [1, 2, 4]) = {accessobj.Intervals.Source(connectedaccessrow), currenttime, accessobj.Intervals.FSPL(connectedaccessrow)};
+                        end
+                    end
+                end
+            end
+        end
+    end
+    % Cleaning up
+    streamlined = rmmissing(streamlined);
 end
