@@ -1,9 +1,9 @@
-function [accessout, aircraftout, constellationout, selectiveout] = AccessAnalysis(scenario)
+function [accessout, aircraftout, selectiveout] = AccessAnalysis(scenario, constellation, startlat, startlong, endlat, endlong)
     % Aircraft/constellation making
-    % aircraft = create_sim_airport(starting, 3); % For airport stuff
     scenario.scenario.AutoSimulate = true;
-    aircraftout = create_mission(scenario, scenario.scenario.StartTime, 3, 53.31, -113.58, 45.32, -75.67); % For testing
-    constellationout = walker_constellation_v2(scenario.scenario, 72, 6, 1, 750, 70, 'star');
+    %53.31, -113.58, 45.32, -75.67
+    aircraftout = create_mission(scenario, scenario.scenario.StartTime, 3, startlat, startlong, endlat, endlong); % For testing
+    constellationout = constellation;
 
     % Access stuff
     accessfirst = Access_AnalysisTable(constellationout, aircraftout);
