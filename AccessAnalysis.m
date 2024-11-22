@@ -1,8 +1,9 @@
-function [accessout, aircraftout, selectiveout] = AccessAnalysis(scenario, constellation, startlat, startlong, endlat, endlong)
+function [accessout, aircraftout, selectiveout] = AccessAnalysis(scenario, duration, constellation, startlat, startlong, endlat, endlong)
     % Aircraft/constellation making
     scenario.scenario.AutoSimulate = true;
     %53.31, -113.58, 45.32, -75.67
-    aircraftout = create_mission(scenario, scenario.scenario.StartTime, 3, startlat, startlong, endlat, endlong); % For testing
+    % I've been using duration = 3
+    aircraftout = create_mission(scenario, scenario.scenario.StartTime, duration, startlat, startlong, endlat, endlong); % For testing
     constellationout = constellation;
 
     % Access stuff
