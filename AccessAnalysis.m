@@ -8,10 +8,12 @@ function [accessout, aircraftout, selectiveout] = AccessAnalysis(scenario, durat
 
     % Access stuff
     accessfirst = Access_AnalysisTable(constellationout, aircraftout);
+    hide(accessfirst, scenario.viewer);
     accessout = accessFSPL(scenario, constellationout, aircraftout, accessfirst, 0.125);
     fix_table(accessout);
 
-    selectiveout = streamlinedaccess(scenario, accessout, aircraftout);
+    selective = streamlinedaccess(scenario, accessout, aircraftout);
+    selectiveout = cleanuptable(scenario, selective);
     accessSim_red_green(scenario, selectiveout, accessout);
 end
 
@@ -276,6 +278,26 @@ function streamlined = streamlinedaccess(scenario,accessobj,aircraft)
     streamlined = rmmissing(streamlined);
 end
 
+function cleanedtable = cleanuptable(scenario, table)
+    cleanedtable = table;
+    startofsim = scenario.scenario.StartTime;
+    startofsim.Format = 'd-MMMM-yyyy HH:mm:ss';
+    startofsim.TimeZone = '';
+
+    for row = 1:size(table.Satellite, 1)
+        starttime = table.('Connection Start')(row);
+        starttime.Format = 'd-MMMM-yyyy HH:mm:ss';
+        starttime.TimeZone = '';
+        endtime = table.('Connection End')(row);
+        endtime.Format = 'd-MMMM-yyyy HH:mm:ss';
+        endtime.TimeZone = '';
+        if endtime == startofsim
+            cleanedtable(row, :) = [];
+        elseif starttime == endtime
+            cleanedtable(row, :) = [];
+        end
+    end
+end
 
 function accessSim_red_green(scenario, tableitem, accessobj) %should we lower sample time?
     hide(accessobj.obj, scenario.viewer);
