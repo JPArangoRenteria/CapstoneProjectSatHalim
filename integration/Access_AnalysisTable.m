@@ -21,8 +21,8 @@ function accessAnalysisTable = Access_AnalysisTable(constellationobject, aircraf
     % end
 
     % Call the access function
-    accessAnalysisTable = access(constellationobject, aircraftobject);
+    accessAnalysisTable.obj = access(constellationobject, aircraftobject.obj);
     accessAnalysisTable.obj.LineColor = "#00FF00";
-    accessAnalysisTable.Intervals = accessIntervals(accessAnalysisTable);
+    accessAnalysisTable.Intervals = accessIntervals(accessAnalysisTable.obj);
     accessAnalysisTable.Intervals = sortrows(accessAnalysisTable.Intervals, "StartTime");
 end
