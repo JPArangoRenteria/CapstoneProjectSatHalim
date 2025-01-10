@@ -1,0 +1,26 @@
+function integrated_analysis(start_y, start_mon, start_d, start_h, start_min, start_s, ...
+                             stop_y, stop_mon, stop_d, stop_h, stop_min, stop_s, stepping_u, ...
+                             numSatellites, numPlanes, relativeSpacing, altitude, inclination, ...
+                             walker_type, filename, ...
+                             flight_duration, start_lat, start_long, end_lat, end_long)
+
+    % Step 1: Create network topology
+    [sc, scenario] = network_topology_with_many_stations(start_y, start_mon, start_d, start_h, start_min, start_s, ...
+                                   stop_y, stop_mon, stop_d, stop_h, stop_min, stop_s, stepping_u, ...
+                                   numSatellites, numPlanes, relativeSpacing, altitude, inclination, ...
+                                   walker_type, filename);
+    scenarioout = create_scenario(scenario);
+    % Step 2: Perform access analysis with the generated network
+    constellation = scenario.Satellites;  % Access the constellation object from the scenario
+
+    % Step 3: Create an aircraft and analyze its access
+    fprintf("Setting up the aircraft mission and performing access analysis...\n");
+    [accessout, aircraftout, selectiveout] = AccessAnalysis(scenarioout, flight_duration, constellation, ...
+                                                            start_lat, start_long, end_lat, end_long);
+
+    % Display results
+    disp("Access analysis complete. Results:");
+    disp(accessout);
+    disp("Selective Access:");
+    disp(selectiveout);
+end
