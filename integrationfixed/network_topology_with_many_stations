@@ -1,0 +1,52 @@
+function [sc,scenario] = network_topology_with_many_stations(start_y, start_mon, start_d, start_h, start_min, start_s, ...
+                                   stop_y, stop_mon, stop_d, stop_h, stop_min, stop_s, stepping_u, ...
+                                   numSatellites, numPlanes, relativeSpacing, altitude, inclination, ...
+                                   walker_type,filename)
+    [sc,scenario] = walker_constellation(start_y, start_mon, start_d, start_h, start_min, start_s, ...
+                                   stop_y, stop_mon, stop_d, stop_h, stop_min, stop_s, stepping_u, ...
+                                   numSatellites, numPlanes, relativeSpacing, altitude, inclination, ...
+                                   walker_type);
+    sats = scenario.Satellites;
+    % Add a ground station to the scenario
+    GS = groundstations(filename,scenario);
+
+    % Connect the ground station to any satellite in view    
+    %accessLinks1 = access(gs, sats);
+    %accessLinks2 = access(ds, sats);
+    for i = 1:length(GS)
+        accessLinki = access(GS(i).GroundStationObj,sats);
+    end
+    % Define the number of satellites per plane
+    numSatellitesPerPlane = numSatellites / numPlanes;
+
+    % Loop through all satellites and connect to nearest neighbors
+    for plane = 1:numPlanes
+        for sat = 1:numSatellitesPerPlane
+            currentIndex = (plane - 1) * numSatellitesPerPlane + sat;
+    
+            % Connect to "right" neighbor (next satellite in the same plane)
+            if sat < numSatellitesPerPlane
+                rightNeighborIndex = currentIndex + 1;
+                access(sats(currentIndex), sats(rightNeighborIndex));
+            end
+    
+            % Connect to "left" neighbor (previous satellite in the same plane)
+            if sat > 1
+                leftNeighborIndex = currentIndex - 1;
+                access(sats(currentIndex), sats(leftNeighborIndex));
+            end
+    
+            % Connect to "up" neighbor (satellite in the next plane, same position)
+            if plane < numPlanes
+                upNeighborIndex = currentIndex + numSatellitesPerPlane;
+                access(sats(currentIndex), sats(upNeighborIndex));
+            end
+    
+            % Connect to "down" neighbor (satellite in the previous plane, same position)
+            if plane > 1
+                downNeighborIndex = currentIndex - numSatellitesPerPlane;
+                access(sats(currentIndex), sats(downNeighborIndex));
+            end
+        end
+    end
+end
