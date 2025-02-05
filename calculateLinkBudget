@@ -1,3 +1,34 @@
+% 1. Inputs
+% - Carrier Frequency (GHz)		- Straight to cfg variable
+% - Bandwidth (MHz)			- Straight to cfg variable
+% - Transmitter Power (dBW)		- Straight to cfg variable
+% - Transmitter System Loss (dB)		- Straight to cfg variable
+% - Transmitter Gain (dBi)		- Straight to cfg variable
+% - Miscellaneous Loss (dB) ????		- Straight to cfg variable
+% - Receiver Gain (dBi)			- Used to calculate Gain 2 Noise Ratio
+% - Receiver System Loss (dB)		- Straight to cfg variable
+% - Modulation Scheme (QAM, PSK, FSK)
+% - Modulation Order (2,4,8,16,32)
+% - Modulation Index
+
+% 2. Calculate Gain 2 Noise Ratio
+% - cfg.GainToNoiseTemperatureRatio = ReceiverGain - 10*log10(290)
+
+% 3. Calculate Bit Rate
+% - cfg.BitRate = calculateBitRate
+
+% 4. Calculate Link Budget
+
+% # Calculates link budget only during link intervals
+% [latResults,berResults,snrResults,fsplResults,distance,timeSamples] = calculateLinkBudget_multipleIntervals(gsORsat,sat,cfg,modType,modOrder,modIndex,sampleTime)
+
+% OR
+
+% # Calculates link budget for whole duration from start time
+% [latResults,berResults,snrResults,fsplResults,distance,timeSamples] = calculateLinkBudget(gsORsat,sat,cfg,modType,modOrder,modIndex,startTime,duration,sampleTime)
+
+
+
 % Calculate Bit Rate
 function bitRate = calculateBitRate(bandwidth,modType,modOrder,modIndex)
 
