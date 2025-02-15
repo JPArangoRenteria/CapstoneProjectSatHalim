@@ -88,13 +88,13 @@ function [latResults,berResults,snrResults,fsplResults,distance,timeSamples] = c
             [cn,info] = satelliteCNR(cfg);
 
             % Compute BER using EbNo from satelliteCNR function
-            if strcmp(modType,'psk')
+            if strcmp(modType,'PSK')
                 berResults(i) = berawgn(info.ReceivedEbNo,modType,modOrder,'nondiff');
             end
-            if strcmp(modType,'fsk')
+            if strcmp(modType,'FSK')
                 berResults(i) = berawgn(info.ReceivedEbNo,modType,modOrder,'noncoherent');
             end
-            if strcmp(modType,'qam')
+            if strcmp(modType,'QAM')
                 berResults(i) = berawgn(info.ReceivedEbNo,modType,modOrder);
             end
 
@@ -130,15 +130,18 @@ function [latResults,berResults,snrResults,fsplResults,distance,timeSamples] = c
             [cn,info] = satelliteCNR(cfg);
             
             % Compute BER using EbNo from satelliteCNR function
-            if strcmp(modType,'psk')
+            if strcmp(modType,'PSK')
                 berResults(i) = berawgn(info.ReceivedEbNo,modType,modOrder,'nondiff');
             end
-            if strcmp(modType,'fsk')
+            if strcmp(modType,'FSK')
                 berResults(i) = berawgn(info.ReceivedEbNo,modType,modOrder,'noncoherent');
             end
-            if strcmp(modType,'qam')
+            if strcmp(modType,'QAM')
                 berResults(i) = berawgn(info.ReceivedEbNo,modType,modOrder);
             end
+
+            % Calculate the Latency Delay
+            latResults(i) = latency(gsORsat,sat,currentTime);
 
             snrResults(i) = cn;             % Save SNR result
             distance(i) = cfg.Distance;
