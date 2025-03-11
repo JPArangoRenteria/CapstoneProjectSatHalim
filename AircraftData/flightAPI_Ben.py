@@ -3,27 +3,35 @@ import pandas as pd
 import time
 
 api = OpenSkyApi()
-# arrivals = api.get_arrivals_by_airport("CYOW",1740978000,1741579200)
-# for flight in arrivals:
-    # if flight.estDepartureAirport == "CYVR":
-        # print(flight.icao24)
-        # track = api.get_track_by_aircraft(flight.icao24)
-        # print(track)
 
-track = api.get_track_by_aircraft("c030fd",1740979863)
+#  Gather flights that arrive in "CYOW" and depart "CYVR" from March 3-10
+arrivals = api.get_arrivals_by_airport("CYOW",1740978000,1741579200)
+counter = 1
+for flight in arrivals:
+    if flight.estDepartureAirport == "CYVR":
+        print(flight.icao24, flight.firstSeen)
 
-flight_path = []
+        # Tracks single aircraft, from the starting the time in UNIX time
+        track = api.get_track_by_aircraft(flight.icao24,flight.firstSeen)
 
-for entry in track.path:
-    timestamp, lat, lon, altitude, velocity, heading = entry
-    readable_time = time.strftime('%Y-%m-%d %H:%M:%S',time.gmtime(timestamp))
+        flight_path = []
 
-    flight_path.append({
-        "Timestamp": readable_time,
-        "Latitude": lat,
-        "Longitude": lon
-    })
+        # For each time stamp, divide data into variables and convert date & time
+        for entry in track.path:
+            timestamp, lat, lon, altitude, velocity, heading = entry
+            readable_time = time.strftime('%Y-%m-%d %H:%M:%S',time.gmtime(timestamp))
 
-df = pd.DataFrame(flight_path, columns=["Timestamp","Latitude","Longitude"])
-csv_filename = "flight_c030fd_track.csv"
-df.to_csv(csv_filename, index=False)
+            # Add data to csv formatted variable
+            flight_path.append({
+                "Timestamp": readable_time,
+                "Latitude": lat,
+                "Longitude": lon
+            })
+
+        # Output data to a CSV file
+        df = pd.DataFrame(flight_path, columns=["Timestamp","Latitude","Longitude"])
+        csv_filename = "Van_to_Ott%i.csv"%(counter)
+        df.to_csv(csv_filename, index=False)
+
+        counter += 1
+        
